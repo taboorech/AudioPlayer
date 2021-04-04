@@ -1,0 +1,105 @@
+﻿<Window x:Class="Audioplayer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Audioplayer"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition Height="0.2*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.3*"></ColumnDefinition>
+            <ColumnDefinition Width="0.7*"></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition Width="0.7*"></ColumnDefinition>
+            <ColumnDefinition Width="0.3*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <Border Grid.Row="1" Grid.Column="5" PreviewMouseDown="AddButtonMouseDown" Background="Gray" x:Name="addDirectory" Cursor="Hand" Visibility="Hidden">
+            <TextBlock Text="+" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17"></TextBlock>
+        </Border>
+        <Border Grid.Row="0" Grid.Column="0" x:Name="allMusics" Background="Gray" PreviewMouseDown="changeWindow" BorderThickness="0" Cursor="Hand">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">All Musics</TextBlock>
+        </Border>
+        <Border Grid.Row="1" Grid.Column="0" x:Name="settings" Background="Gray" PreviewMouseDown="changeWindow" BorderThickness="0" Cursor="Hand">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">Settings</TextBlock>
+        </Border>
+        <!--<Button Grid.Row="0" Grid.Column="0" Content="Select Dirs" x:Name="selectDirs" Click="changeWindow"></Button>-->
+        <ScrollViewer Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Grid.RowSpan="4" x:Name="toSounds">
+            <Grid x:Name="playList">
+
+            </Grid>
+        </ScrollViewer>
+        <ScrollViewer Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Grid.RowSpan="4" x:Name="toDirs" Visibility="Hidden">
+            <Grid x:Name="Dirs">
+
+            </Grid>
+        </ScrollViewer>
+        <Grid Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.7*"></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition Width="0.7*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" x:Name="SoundName" FontSize="17px"></TextBlock>
+            <Grid Grid.Row="1" Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.7*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="0.7*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" x:Name="prevSound" BorderThickness="0" Background="Gray" PreviewMouseDown="changeSounds" Cursor="Hand">
+                    <TextBlock VerticalAlignment="Center" Foreground="White" FontSize="16" HorizontalAlignment="Center"></TextBlock>
+                </Border>
+                <!--<Button Grid.Column="0" x:Name="prevSound" BorderThickness="1 1 0 1" Background="Gray" Foreground="White" FontSize="16" Click="changeSounds"></Button>-->
+                <Border Grid.Column="1" Background="Gray" x:Name="play" PreviewMouseDown="playPause" BorderThickness="0" Cursor="Hand">
+                    <TextBlock VerticalAlignment="Center" Foreground="White" FontSize="16" HorizontalAlignment="Center">Play</TextBlock>
+                </Border>
+                <!--<Button Grid.Column="1" Click="playPause" BorderThickness="0 1 0 1" Background="Gray" Foreground="White" FontSize="16" x:Name="play">Play</Button>-->
+                <Border Grid.Column="2" x:Name="nextSound" BorderThickness="0" Background="Gray" PreviewMouseDown="changeSounds" Cursor="Hand">
+                    <TextBlock VerticalAlignment="Center" Foreground="White" FontSize="16" HorizontalAlignment="Center"></TextBlock>
+                </Border>
+                <!--<Button Grid.Column="2" x:Name="nextSound" BorderThickness="0 1 1 1" Background="Gray" Foreground="White" FontSize="16" Click="changeSounds"></Button>-->
+            </Grid>
+            <Grid Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.4*"></ColumnDefinition>
+                    <ColumnDefinition Width="2*"></ColumnDefinition>
+                    <ColumnDefinition Width="0.4*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="currentTime" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                <TextBlock Grid.Column="1" Height="5" x:Name="progressBar" VerticalAlignment="Center" Background="Gray" Cursor="Hand">
+                    <TextBlock Height="5" Width="0" x:Name="progress" Background="Black"></TextBlock>
+                </TextBlock>
+                <TextBlock x:Name="durationTime" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">0:00</TextBlock>
+            </Grid>
+            <Grid Grid.Row="0" Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*"></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Height="5" x:Name="volumeBar" VerticalAlignment="Center" PreviewMouseDown="volumeBar_click" Margin="15 0 15 0" Background="Gray" Cursor="Hand">
+                    <TextBlock Height="5" Width="120" x:Name="volume" Background="Black"></TextBlock>
+                </TextBlock>
+                <Border Grid.Column="1" BorderThickness="0" PreviewMouseDown="loopButton_click" x:Name="loopButton" Cursor="Hand">
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="16">Loop</TextBlock>
+                </Border>
+                <!--<Button Grid.Column="1" Click="loopButton_click" BorderThickness="0">Looper</Button>-->
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
