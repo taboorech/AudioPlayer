@@ -27,28 +27,67 @@ namespace Audioplayer
     {
         private MediaPlayer auSet = new MediaPlayer();
         public bool switcher = false;
-        Elements elem = new Elements();
+        Elements elem = new Elements();        
         Time time = new Time();
         findAudio finder = new findAudio();
         DispatcherTimer timer = new DispatcherTimer();
-        List<TextBlock> deleteButtons = new List<TextBlock>();
-        int count = 0;
+        List<Border> deleteButtons = new List<Border>();
+        int count = 0;        
         List<string> songs = new List<string>();
         List<Border> playButtons = new List<Border>();
+        List<string> path = new List<string>();
+        List<CheckBox> selectSongBlocks = new List<CheckBox>();
+        List<CheckBox> checkBoxes = new List<CheckBox>();
+        List<TextBlock> songsNames = new List<TextBlock>();
+        //List<Grid> songGrid = new List<Grid>();
+        List<Border> addButtons = new List<Border>();
+        List<string> dirsList = new List<string>();
+        List<string> listOfSongs = new List<string>();
+        string[] xmlPlayLists = new string[4096];
+        bool playListSwitch = false;
         bool looper = false;
+        string nameOfPlayList = "";
+        int playListCount = 0;
+        TextBlock barObject = null;
+        XDocument settingsXML = null;
+        int page = 0;
         public MainWindow()
         {
-            InitializeComponent();            
-            XDocument settings = XDocument.Load("settings.xml");
-            List<string> path = new List<string>();
-            foreach(XElement dir in settings.Element("Dirs").Elements("dir"))
+            InitializeComponent(); 
+            if(!File.Exists("settings.xml"))
+            {
+                XDocument createXML = new XDocument(new XElement("Settings", new XElement("Dirs", ""), new XElement("LastSong", new XAttribute("playList", "none"), 0), new XElement("Volume", "1"), new XElement("page", 0)));
+                createXML.Save("settings.xml");
+            }
+            settingsXML = XDocument.Load("settings.xml");
+            page = Int32.Parse(settingsXML.Element("Settings").Element("Page").Value);            
+            changeWindow(null, null);
+            auSet.Volume = Double.Parse(settingsXML.Element("Settings").Element("Volume").Value);
+            this.Loaded += onWindowLoad;
+            foreach (XElement dir in settingsXML.Element("Settings").Element("Dirs").Elements("dir"))
             {
                 path.Add(dir.Value);
             }
-            //string path = @"C:\Users\Кисе\Desktop\Музыка";        
             finder.finder(path, songs);
-            auSet.Open(new Uri(songs[count]));
-            ((TextBlock)FindName("SoundName")).Text = elem.soundName(auSet.Source.ToString());
+            count = Int32.Parse(settingsXML.Element("Settings").Element("LastSong").Value);
+            if (settingsXML.Element("Settings").Element("LastSong").Attribute("playList").Value != "none")
+            {
+                playListSwitch = true;
+                nameOfPlayList = $"{settingsXML.Element("Settings").Element("LastSong").Attribute("playList").Value}";
+                XDocument playListXML = XDocument.Load($"{nameOfPlayList}");
+                foreach (XElement song in playListXML.Element("Songs").Elements("song"))
+                {
+                    listOfSongs.Add(song.Value);
+                }                
+                playListCount = Int32.Parse(settingsXML.Element("Settings").Element("LastSong").Value);                
+                count = songs.IndexOf(listOfSongs[Int32.Parse(settingsXML.Element("Settings").Element("LastSong").Value)]);
+            }                        
+            //path.Clear();            
+            if (path.Count > 0)
+            {
+                auSet.Open(new Uri(songs[count]));
+                SoundName.Text = elem.soundName(auSet.Source.ToString());
+            }
             Grid playList = (Grid)FindName("playList");
             TextBlock prgressBar = (TextBlock)FindName("progressBar");
             ((Border)FindName("prevSound")).MouseEnter += elem.onMouseEnter;
@@ -59,24 +98,21 @@ namespace Audioplayer
             ((Border)FindName("allMusics")).MouseEnter += elem.onMouseEnter;
             ((Border)FindName("allMusics")).Background = Brushes.Transparent;
             ((Border)FindName("settings")).MouseEnter += elem.onMouseEnter;
+            ((Border)FindName("playListsButton")).MouseEnter += elem.onMouseEnter;
             ((Border)FindName("settings")).Background = Brushes.Transparent;
-            //((Border)FindName("loopButton")).MouseEnter += elem.onMouseEnter;
+            ((Border)FindName("playListsButton")).Background = Brushes.Transparent;
             ((Border)FindName("prevSound")).MouseLeave += elem.onMouseLeave;
             ((Border)FindName("play")).MouseLeave += elem.onMouseLeave;
             ((Border)FindName("nextSound")).MouseLeave += elem.onMouseLeave;
             ((Border)FindName("addDirectory")).MouseLeave += elem.onMouseLeave;
             ((Border)FindName("allMusics")).MouseLeave += elem.onMouseLeave;
             ((Border)FindName("settings")).MouseLeave += elem.onMouseLeave;
-            string settingsFile = "settings.xml";            
-            List<string> dirsList = new List<string>();
-            if (!File.Exists(settingsFile))
-            {
-                XDocument createXML = new XDocument(new XElement("Dirs", ""));
-                createXML.Save("settings.xml");
-            }
-            XDocument sett = XDocument.Load(settingsFile);
+            ((Border)FindName("playListsButton")).MouseLeave += elem.onMouseLeave;                                  
+            
+            ///////////////////////////////           
+            /////////////////////////////            
             Grid dirs = (Grid)FindName("Dirs");
-            foreach (XElement dir in sett.Element("Dirs").Elements("dir"))
+            foreach (XElement dir in settingsXML.Element("Settings").Element("Dirs").Elements("dir"))
             {
                 dirsList.Add(dir.Value);
             }
@@ -102,8 +138,8 @@ namespace Audioplayer
                 deleteButton.HorizontalAlignment = HorizontalAlignment.Center;
                 deleteButton.VerticalAlignment = VerticalAlignment.Center;
                 deleteButton.Text = "-";
-                deleteButtons.Add(deleteButton);
-                deleteButton.PreviewMouseDown += deletePath;
+                deleteButtons.Add(borderToDel);
+                borderToDel.PreviewMouseDown += deletePath;
                 borderToDel.Child = deleteButton;
                 elem.onMouseEnter(borderToDel, null);
                 elem.onMouseLeave(borderToDel, null);
@@ -118,8 +154,7 @@ namespace Audioplayer
                 dirInfo.Children.Add(nameOfDir);
                 dirInfo.Children.Add(borderToDel);
                 dirs.Children.Add(dirInfo);
-            }
-            //((Border)FindName("loopButton")).MouseLeave += elem.onMouseLeave;
+            }            
             progressBar.PreviewMouseDown += progressBar_click;
             TextBlock progress = (TextBlock)FindName("progress");            
             timer.Interval = TimeSpan.FromSeconds(1);
@@ -127,269 +162,606 @@ namespace Audioplayer
             timer.Start();
             time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock) FindName("durationTime"));
             createPlayListElement();
+            getPlayListsNames();            
         }
 
-        public void progressBar_click(object sender, MouseEventArgs e)
+        private void getPlayListsNames()
+        {
+            xmlPlayLists = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.xml");
+            for (int i = 0; i < xmlPlayLists.Length; i++)
+            {
+                //XDocument xpl = XDocument.Load(xmlPlayLists[i]);
+                string[] nameOfPlayList = xmlPlayLists[i].Split('\\', '/');
+                if (nameOfPlayList[nameOfPlayList.Length - 1] != "settings.xml")
+                {
+                    createElementInGrid(nameOfPlayList[nameOfPlayList.Length - 1], i);
+                }
+            }
+        }        
+        
+        private void onWindowLoad(object sender, RoutedEventArgs e)
+        {
+            volume.Width = auSet.Volume * volumeBar.ActualWidth;
+        }
+        private void progressBar_click(object sender, MouseEventArgs e)
         {
             PreviewMouseMove += progressBar_MouseMove;
             PreviewMouseUp += progressBar_MouseButtonUp;
-            double obj = (progressBar).PointToScreen(new Point(0, 0)).X;
+            barObject = (TextBlock)sender;            
+            double obj = ((TextBlock)sender).PointToScreen(new Point(0, 0)).X;
 
             var windowPosition = Mouse.GetPosition(this);
             double screenPosition = this.PointToScreen(windowPosition).X;
 
-            double widthOfElement = (progressBar).ActualWidth;
-            if (screenPosition - obj > 0 && screenPosition - obj < widthOfElement)
+            double widthOfElement = ((TextBlock)sender).ActualWidth;
+            if (screenPosition - obj >= 0 && screenPosition - obj <= widthOfElement)
             {
-                auSet.Position = TimeSpan.FromSeconds(auSet.NaturalDuration.TimeSpan.TotalSeconds * (((screenPosition - obj) * 100 / widthOfElement) / 100));
+                if (barObject.Name != "volumeBar")
+                {
+                    auSet.Position = TimeSpan.FromSeconds(auSet.NaturalDuration.TimeSpan.TotalSeconds * (((screenPosition - obj) * 100 / widthOfElement) / 100));
+                    time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
+                } else
+                {
+                    ((TextBlock)FindName("volume")).Width = screenPosition - obj;
+                    auSet.Volume = ((((screenPosition - obj) * 100) / widthOfElement) / 100);
+                }
             }
-            time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
         }
 
-        public void progressBar_MouseMove(object sender, MouseEventArgs e)
+        private void progressBar_MouseMove(object sender, MouseEventArgs e)
         {
-            auSet.Pause();
-            double obj = (progressBar).PointToScreen(new Point(0, 0)).X;
+            if (barObject.Name != "volumeBar")
+            {
+                auSet.Pause();
+            }
+            double obj = (barObject).PointToScreen(new Point(0, 0)).X;
 
             var windowPosition = Mouse.GetPosition(this);
             double screenPosition = this.PointToScreen(windowPosition).X;
 
-            double widthOfElement = (progressBar).ActualWidth;
-            if (screenPosition - obj > 0 && screenPosition - obj < widthOfElement)
+            double widthOfElement = (barObject).ActualWidth;
+            if (screenPosition - obj >= 0 && screenPosition - obj <= widthOfElement)
             {
-                auSet.Position = TimeSpan.FromSeconds(auSet.NaturalDuration.TimeSpan.TotalSeconds * (((screenPosition - obj) * 100 / widthOfElement) / 100));
+                if (barObject.Name != "volumeBar")
+                {
+                    auSet.Position = TimeSpan.FromSeconds(auSet.NaturalDuration.TimeSpan.TotalSeconds * (((screenPosition - obj) * 100 / widthOfElement) / 100));
+                    time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
+                } else
+                {
+                    volume.Width = screenPosition - obj;
+                    auSet.Volume = ((((screenPosition - obj) * 100) / widthOfElement) / 100);
+                }
             }
-            time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
+            //time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
             PreviewMouseUp += progressBar_MouseButtonUp;
         }
 
-        public void progressBar_MouseButtonUp(object sender, MouseEventArgs e)
+        private void progressBar_MouseButtonUp(object sender, MouseEventArgs e)
         {
             PreviewMouseMove -= progressBar_MouseMove;
-            if (switcher)
+            if (switcher && barObject.Name != "volumeBar")
             {
                 auSet.Play();
             }
+            if(barObject.Name == "volumeBar")
+            {                
+                settingsXML.Element("Settings").Element("Volume").Value = auSet.Volume.ToString();
+                settingsXML.Save("settings.xml");
+            }            
+            PreviewMouseUp -= progressBar_MouseButtonUp;
             //time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
+        }        
+
+        private void createElementInGrid(string nameOfPlayList, int i)
+        {
+            Grid playListsGrid = (Grid)FindName("pL");
+            RowDefinition row = new RowDefinition();
+            row.Height = new GridLength(50, GridUnitType.Pixel);
+            playListsGrid.RowDefinitions.Add(row);
+            Grid dirInfo = new Grid();
+            Grid.SetRow(dirInfo, i);
+            //ColumnDefinition dirsPath = new ColumnDefinition();
+            Border toNameOfDir = new Border();
+            TextBlock nameOfDir = new TextBlock();
+            nameOfDir.FontSize = 17;
+            nameOfDir.VerticalAlignment = VerticalAlignment.Center;
+            toNameOfDir.PreviewMouseDown += changeWindow;
+            toNameOfDir.Margin = new Thickness(15, 0, 0, 0);
+            toNameOfDir.Padding = new Thickness(30, 10, 10, 10);
+            nameOfDir.Text = nameOfPlayList;
+            toNameOfDir.Cursor = Cursors.Hand;
+            toNameOfDir.Child = nameOfDir;
+            toNameOfDir.MouseEnter += elem.onMouseEnter;
+            toNameOfDir.MouseLeave += elem.onMouseLeave;
+            elem.onMouseEnter(toNameOfDir, null);
+            elem.onMouseLeave(toNameOfDir, null);
+            Grid.SetColumn(toNameOfDir, 0);
+            dirInfo.Children.Add(toNameOfDir);
+            playListsGrid.Children.Add(dirInfo);
+            //MessageBox.Show(nameOfPlayList);
         }
 
-        public void toTimer(object sender, EventArgs e)
+        private void toTimer(object sender, EventArgs e)
         {
-            if(auSet.NaturalDuration.HasTimeSpan && (auSet.Position.TotalSeconds * 100 / auSet.NaturalDuration.TimeSpan.TotalSeconds) >= 100 && !looper) 
+            //MessageBox.Show(((auSet.Position.TotalSeconds * 100 / auSet.NaturalDuration.TimeSpan.TotalSeconds) >= 100).ToString());
+            if(auSet.NaturalDuration.HasTimeSpan && (auSet.Position.TotalSeconds == auSet.NaturalDuration.TimeSpan.TotalSeconds) && !looper) 
             {
-                if (count >= (songs.Count - 1))
+                if (playListSwitch)
                 {
-                    count = 0;
+                    if (playListCount == listOfSongs.Count - 1)
+                    {
+                        playListCount = 0;
+                        count = songs.IndexOf(listOfSongs[playListCount]);
+                    }
+                    else
+                    {
+                        playListCount++;
+                        count = songs.IndexOf(listOfSongs[playListCount]);
+                    }
                 }
                 else
                 {
-                    count++;
+                    if (count == (songs.Count - 1))
+                    {
+                        count = 0;
+                    }
+                    else
+                    {
+                        count++;
+                    }
                 }
                 auSet.Open(new Uri(songs[count]));
                 ((TextBlock)FindName("SoundName")).Text = elem.soundName(auSet.Source.ToString());
+                for (int i = 0; i < playButtons.Count; i++)
+                {
+                    ((TextBlock)(playButtons[i]).Child).Text = "▶";
+                }
+                if (playListSwitch)
+                {
+                    ((TextBlock)(playButtons[count + songs.Count].Child)).Text = "❚❚";
+                }
+                else
+                {
+                    ((TextBlock)(playButtons[count].Child)).Text = "❚❚";
+                }
                 progress.Width = 0;
-                auSet.Play();
-            } else if(auSet.NaturalDuration.HasTimeSpan && (auSet.Position.TotalSeconds * 100 / auSet.NaturalDuration.TimeSpan.TotalSeconds) >= 100 && looper)
+                settingsXML.Element("Settings").Element("LastSong").Value = count.ToString();
+                settingsXML.Save("settings.xml");
+                auSet.Play();    
+            } else if(auSet.NaturalDuration.HasTimeSpan && (auSet.Position.TotalSeconds == auSet.NaturalDuration.TimeSpan.TotalSeconds) && looper)
             {
                 auSet.Position = TimeSpan.FromSeconds(0);
                 progress.Width = 0;
             }
             time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
         }
-
-        public void playPause(object sender, RoutedEventArgs e)
+        
+        private void playPause(object sender, RoutedEventArgs e)
         {
             if (!switcher)
             {
                 auSet.Play();
-                ((TextBlock)(playButtons[count].Child)).Text = "||";
+                if (playListSwitch)
+                {
+                    ((TextBlock)(playButtons[playListCount + songs.Count]).Child).Text = "❚❚";
+                }
+                else
+                {
+                    ((TextBlock)(playButtons[count]).Child).Text = "❚❚";
+                }                            
                 switcher = true;
                 timer.Start();
             } 
             else
             {
                 auSet.Pause();
-                ((TextBlock)(playButtons[count].Child)).Text = "▶";
+                if (playListSwitch)
+                {
+                    ((TextBlock)(playButtons[playListCount + songs.Count]).Child).Text = "▶";
+                }
+                else
+                {
+                    ((TextBlock)(playButtons[count]).Child).Text = "▶";
+                }                                
                 switcher = false;
-                timer.Stop();
+                timer.Stop();                
             }
             elem.changeButton(switcher, (TextBlock)(((Border)sender).Child));
+            if (!playListSwitch)
+            {
+                settingsXML.Element("Settings").Element("LastSong").Value = count.ToString();
+            }else
+            {
+                settingsXML.Element("Settings").Element("LastSong").Value = playListCount.ToString();
+            }
+            settingsXML.Save("settings.xml");
         }
 
         private void AddButtonMouseDown(object sender, MouseButtonEventArgs e)
         {
-            using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+            if (((ScrollViewer)FindName("toDirs")).Visibility == Visibility.Visible)
             {
-                System.Windows.Forms.DialogResult result = dialog.ShowDialog();
-                XDocument settings = XDocument.Load("settings.xml");
-                XElement dirs = settings.Element("Dirs");
-                MessageBox.Show(result.ToString());
-                if (result.ToString() == "OK")
+                using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
                 {
-                    dirs.Add(new XElement("dir", dialog.SelectedPath, new XAttribute("id", deleteButtons.Count)));
+                    System.Windows.Forms.DialogResult result = dialog.ShowDialog();                    
+                    Grid dirs = (Grid)FindName("Dirs");
+                    if (result.ToString() == "OK")
+                    {
+                        songs.Clear();
+                        path.Add(dialog.SelectedPath);
+                        finder.finder(path, songs);
+                        dirsList.Add(dialog.SelectedPath);
+                        playList.Children.Clear();
+                        playList.RowDefinitions.Clear();
+                        //
+                        addButtons.Clear();
+                        checkBoxes.Clear();
+                        playButtons.Clear();
+                        //
+                        createPlayListElement();
+                        settingsXML.Element("Settings").Element("Dirs").Add(new XElement("dir", dialog.SelectedPath, new XAttribute("id", deleteButtons.Count)));
+                        //path.Add(dialog.SelectedPath);
+                        RowDefinition row = new RowDefinition();
+                        row.Height = new GridLength(50, GridUnitType.Pixel);
+                        dirs.RowDefinitions.Add(row);
+                        Grid dirInfo = new Grid();
+                        Grid.SetRow(dirInfo, dirs.RowDefinitions.Count - 1);
+                        ColumnDefinition dirsPath = new ColumnDefinition();
+                        ColumnDefinition buttonToDel = new ColumnDefinition();
+                        dirsPath.Width = new GridLength(3, GridUnitType.Star);
+                        buttonToDel.Width = new GridLength(0.3, GridUnitType.Star);
+                        dirInfo.ColumnDefinitions.Add(dirsPath);
+                        dirInfo.ColumnDefinitions.Add(buttonToDel);
+                        Border borderToDel = new Border();
+                        borderToDel.Cursor = Cursors.Hand;
+                        borderToDel.MouseEnter += elem.onMouseEnter;
+                        borderToDel.MouseLeave += elem.onMouseLeave;
+                        TextBlock deleteButton = new TextBlock();
+                        deleteButton.FontSize = 20;
+                        deleteButton.HorizontalAlignment = HorizontalAlignment.Center;
+                        deleteButton.VerticalAlignment = VerticalAlignment.Center;
+                        deleteButton.Text = "-";
+                        deleteButtons.Add(borderToDel);
+                        borderToDel.PreviewMouseDown += deletePath;
+                        borderToDel.Child = deleteButton;
+                        elem.onMouseEnter(borderToDel, null);
+                        elem.onMouseLeave(borderToDel, null);
+                        Grid.SetColumn(borderToDel, 1);
+                        TextBlock nameOfDir = new TextBlock();
+                        nameOfDir.FontSize = 17;
+                        nameOfDir.VerticalAlignment = VerticalAlignment.Center;
+                        nameOfDir.Margin = new Thickness(15, 0, 0, 0);
+                        //nameOfDir.HorizontalAlignment = HorizontalAlignment.Center;
+                        nameOfDir.Text = dialog.SelectedPath;
+                        //selectPath.Add(dialog.SelectedPath);
+                        Grid.SetColumn(nameOfDir, 0);
+                        dirInfo.Children.Add(nameOfDir);
+                        dirInfo.Children.Add(borderToDel);
+                        dirs.Children.Add(dirInfo);
+                        //finder.finder(path, songs);
+                        //createPlayListElement();
+                    }
+                    settingsXML.Save("settings.xml");
+                    //MessageBox.Show(dialog.SelectedPath);
                 }
-                settings.Save("settings.xml");
-                //MessageBox.Show(dialog.SelectedPath);
-            }
-        }
-
-        private void volumeBar_click(object sender, RoutedEventArgs e)
-        {
-            PreviewMouseMove += volumeBar_MouseMove;
-            PreviewMouseUp += volumeBar_MouseUp;
-            double obj = ((TextBlock)FindName("volumeBar")).PointToScreen(new Point(0, 0)).X;
-
-            var windowPosition = Mouse.GetPosition(this);
-            double screenPosition = this.PointToScreen(windowPosition).X;
-
-            double widthOfElement = ((TextBlock)FindName("volumeBar")).ActualWidth;
-            if ((screenPosition - obj >= 0) && (screenPosition - obj <= widthOfElement))
+            } else if(((ScrollViewer)FindName("toSounds")).Visibility == Visibility.Visible)
             {
-                ((TextBlock)FindName("volume")).Width = screenPosition - obj;
-                auSet.Volume = ((((screenPosition - obj) * 100) / widthOfElement) / 100);             
-            }            
-        }
-
-        private void volumeBar_MouseMove(object sender, MouseEventArgs e)
-        {
-            double obj = ((TextBlock)FindName("volumeBar")).PointToScreen(new Point(0, 0)).X;
-
-            var windowPosition = Mouse.GetPosition(this);
-            double screenPosition = this.PointToScreen(windowPosition).X;
-
-            double widthOfElement = ((TextBlock)FindName("volumeBar")).ActualWidth;
-            if ((screenPosition - obj >= 0) && (screenPosition - obj <= widthOfElement))
+                addInPlayList addInPlayListWindow = new addInPlayList();                
+                if (addButtons.Contains((Border)sender))
+                {
+                    selectSongBlocks.Add(checkBoxes[addButtons.IndexOf((Border)sender)]);
+                }
+                //playListSwitch = false;
+                //songs = allSongsFromDirs;
+                addInPlayListWindow.listWriter(checkBoxes, selectSongBlocks, songs);
+                addInPlayListWindow.Top = ((Border)sender).PointToScreen(new Point(0, 0)).Y + ((Border)sender).ActualHeight;
+                addInPlayListWindow.Left = ((Border)sender).PointToScreen(new Point(0, 0)).X - (addInPlayListWindow.Width / 2);
+                selectSongBlocks.Clear();
+                addInPlayListWindow.ShowDialog();               
+                /*if (((ScrollViewer)((StackPanel)FindName("playLists")).Parent).Visibility == Visibility.Visible)
+                {
+                    ((ScrollViewer)((StackPanel)FindName("playLists")).Parent).Visibility = Visibility.Hidden;
+                }
+                else
+                {
+                    ((ScrollViewer)((StackPanel)FindName("playLists")).Parent).Visibility = Visibility.Visible;
+                }*/
+            } else
             {
-                ((TextBlock)FindName("volume")).Width = screenPosition - obj;
-                auSet.Volume = ((((screenPosition - obj) * 100) / widthOfElement) / 100);
-            }
-        }
-
-        private void volumeBar_MouseUp(object sender, MouseEventArgs e)
-        {
-            PreviewMouseMove -= volumeBar_MouseMove;
-            double obj = ((TextBlock)FindName("volumeBar")).PointToScreen(new Point(0, 0)).X;
-
-            var windowPosition = Mouse.GetPosition(this);
-            double screenPosition = this.PointToScreen(windowPosition).X;
-
-            double widthOfElement = ((TextBlock)FindName("volumeBar")).ActualWidth;
-            if ((screenPosition - obj >= 0) && (screenPosition - obj <= widthOfElement))
-            {
-                ((TextBlock)FindName("volume")).Width = screenPosition - obj;
-                auSet.Volume = ((((screenPosition - obj) * 100) / widthOfElement) / 100);
+                createPlayList createPlayListWindow = new createPlayList();                
+                createPlayListWindow.Top = ((Border)sender).PointToScreen(new Point(0, 0)).Y + ((Border)sender).ActualHeight;
+                createPlayListWindow.Left = ((Border)sender).PointToScreen(new Point(0, 0)).X - (createPlayListWindow.Width / 2);
+                createPlayListWindow.writer(((Grid)FindName("pL")).RowDefinitions.Count);
+                createPlayListWindow.Owner = this;
+                createPlayListWindow.ShowDialog();
+                nameOfPlayList = "";
+                pL.Children.Clear();
+                pL.RowDefinitions.Clear();
+                getPlayListsNames();
+                
+                /*if (((StackPanel)FindName("createForm")).Visibility == Visibility.Visible)
+                {
+                    ((StackPanel)FindName("createForm")).Visibility = Visibility.Hidden;
+                }
+                else
+                {
+                    ((StackPanel)FindName("createForm")).Visibility = Visibility.Visible;
+                }*/
             }
         }
 
         private void deletePath(object sender, RoutedEventArgs e)
-        {
-            XDocument settings = XDocument.Load("settings.xml");
-            foreach (XElement dir in settings.Element("Dirs").Elements("dir"))
-            {
-                if (dir.Attribute("id").Value == deleteButtons.IndexOf((TextBlock)sender).ToString())
+        {               
+            foreach (XElement dir in settingsXML.Element("Settings").Element("Dirs").Elements("dir"))
+            {                
+                if (dir.Value == dirsList[deleteButtons.IndexOf((Border)sender)])
                 {
                     dir.Remove();
+                    for (int i = 0; i < Dirs.Children.Count; i++)
+                    {
+                        if (i == Grid.GetRow(Dirs.Children[i]) && i == deleteButtons.IndexOf((Border)sender))
+                        {
+                            Dirs.Children.Remove(Dirs.Children[i]);
+                        }
+                    }
+                    for (int i = 0; i < Dirs.RowDefinitions.Count; i++)
+                    {
+                        if (i == deleteButtons.IndexOf((Border)sender))
+                        {
+                            Dirs.RowDefinitions.RemoveAt(i);
+                        }
+                    }
                 }
             }
-            settings.Save("settings.xml");
+            path.Remove(dirsList[deleteButtons.IndexOf((Border)sender)]);
+            songs.Clear();
+            playList.RowDefinitions.Clear();
+            playList.Children.Clear();
+            finder.finder(path, songs);
+            dirsList.RemoveAt(deleteButtons.IndexOf((Border)sender));
+            deleteButtons.Remove((Border)sender);
+            //MessageBox.Show(path.Count.ToString());
+            createPlayListElement();
+            settingsXML.Save("settings.xml");
+            auSet.Pause();
+            if(count >= songs.Count && path.Count > 0)
+            {
+                count = 0;
+                auSet.Open(new Uri(songs[count]));
+                SoundName.Text = elem.soundName(songs[count]);
+                if(switcher)
+                {
+                    auSet.Play();
+                }
+            }
             //deleteButtons.IndexOf((Border)sender);
         }
 
         public void createPlayListElement()
         {
-            for (int i = 0; i < songs.Count; i++)
+            if (playList.Children.Count == 0)
             {
-                RowDefinition row = new RowDefinition();
-                row.Height = new GridLength(50, GridUnitType.Pixel);
-                playList.RowDefinitions.Add(row);
-                Grid song = new Grid();
-                ColumnDefinition name = new ColumnDefinition();
-                GridLength nameWidth = new GridLength(2, GridUnitType.Star);
-                name.Width = nameWidth;
-                // Song Name
-                TextBlock songName = new TextBlock();
-                songName.Text = elem.soundName(songs[i]);
-                songName.FontSize = 17;
-                songName.Margin = new Thickness(15, 0, 0, 0);
-                songName.VerticalAlignment = VerticalAlignment.Center;
-                Grid.SetColumn(songName, 0);
-                song.Children.Add(songName);
-                // Play Button
-                ColumnDefinition play = new ColumnDefinition();
-                GridLength playWidth = new GridLength(0.2, GridUnitType.Star);
-                play.Width = playWidth;
-                Border playButton = new Border();
-                playButton.BorderThickness = new Thickness(0);
-                TextBlock playButtonBlock = new TextBlock();
-                //playButton.Background = Brushes.Gray;
-                playButton.MouseEnter += elem.onMouseEnter;                
-                playButton.MouseLeave += elem.onMouseLeave;
-                playButton.Child = playButtonBlock;
-                playButtonBlock.Text = "▶";
-                playButtonBlock.FontSize = 17;
-                playButtonBlock.VerticalAlignment = VerticalAlignment.Center;
-                playButtonBlock.HorizontalAlignment = HorizontalAlignment.Center;
-                playButton.PreviewMouseDown += playButton_click;                
-                playButton.Cursor = Cursors.Hand;
-                elem.onMouseEnter(playButton, null);
-                elem.onMouseLeave(playButton, null);
-                playButtons.Add(playButton);
-                Grid.SetColumn(playButton, 1);
-                song.Children.Add(playButton);
-                ColumnDefinition add = new ColumnDefinition();
-                add.Width = playWidth;
-                // addButton
-                Button addButton = new Button();
-                addButton.BorderThickness = new Thickness(0);
-                addButton.Content = "+";
-                addButton.FontSize = 17;
-                Grid.SetColumn(addButton, 2);
-                song.Children.Add(addButton);
-                //ColumnDefinition blank = new ColumnDefinition();              
-                ColumnDefinition time = new ColumnDefinition();
-                time.Width = playWidth;
-                TextBlock durationTimeBlock = new TextBlock();
-                durationTimeBlock.FontSize = 17;
-                Grid.SetColumn(durationTimeBlock, 3);
-                song.Children.Add(durationTimeBlock);
-                //
-                song.ColumnDefinitions.Add(name);
-                song.ColumnDefinitions.Add(play);
-                song.ColumnDefinitions.Add(add);
-                //song.ColumnDefinitions.Add(blank);
-                song.ColumnDefinitions.Add(time);
-                Grid.SetRow(song, i);
-                playList.Children.Add(song);
+                for (int i = 0; i < songs.Count; i++)
+                {
+                    RowDefinition row = new RowDefinition();
+                    row.Height = new GridLength(50, GridUnitType.Pixel);
+                    playList.RowDefinitions.Add(row);
+                    Grid song = new Grid();                    
+                    GridLength playWidth = new GridLength(0.2, GridUnitType.Star);
+                    ColumnDefinition toCheck = new ColumnDefinition();
+                    toCheck.Width = playWidth;
+                    CheckBox selectSong = new CheckBox { IsChecked = false, IsThreeState = false, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(15, 0, 0, 0) };
+                    checkBoxes.Add(selectSong);
+                    //TextBlock selectSong = new TextBlock();
+                    //selectSong.FontSize = 17;
+                    selectSong.Click += checkBoxClick;
+                    Grid.SetColumn(selectSong, 0);
+                    song.Children.Add(selectSong);
+                    ColumnDefinition name = new ColumnDefinition();
+                    GridLength nameWidth = new GridLength(2, GridUnitType.Star);
+                    name.Width = nameWidth;
+                    // Song Name
+                    TextBlock songName = new TextBlock();
+                    songsNames.Add(songName);
+                    songName.Text = elem.soundName(songs[i]);
+                    songName.FontSize = 17;
+                    songName.VerticalAlignment = VerticalAlignment.Center;
+                    Grid.SetColumn(songName, 1);
+                    song.Children.Add(songName);
+                    // Play Button
+                    ColumnDefinition play = new ColumnDefinition();
+                    play.Width = playWidth;
+                    Border playButton = new Border();
+                    playButton.BorderThickness = new Thickness(0);
+                    TextBlock playButtonBlock = new TextBlock();
+                    //playButton.Background = Brushes.Gray;
+                    playButton.MouseEnter += elem.onMouseEnter;
+                    playButton.MouseLeave += elem.onMouseLeave;
+                    playButton.Child = playButtonBlock;
+                    playButtonBlock.Text = "▶";
+                    playButtonBlock.FontSize = 17;
+                    playButtonBlock.VerticalAlignment = VerticalAlignment.Center;
+                    playButtonBlock.HorizontalAlignment = HorizontalAlignment.Center;
+                    playButton.PreviewMouseDown += playButton_click;
+                    playButton.Cursor = Cursors.Hand;
+                    elem.onMouseEnter(playButton, null);
+                    elem.onMouseLeave(playButton, null);
+                    playButtons.Add(playButton);
+                    Grid.SetColumn(playButton, 2);
+                    song.Children.Add(playButton);
+                    ColumnDefinition add = new ColumnDefinition();
+                    add.Width = playWidth;
+                    Border addButton = new Border();
+                    addButton.MouseEnter += elem.onMouseEnter;
+                    addButton.MouseLeave += elem.onMouseLeave;
+                    playButton.BorderThickness = new Thickness(0);
+                    TextBlock addButtonBlock = new TextBlock();
+                    addButton.BorderThickness = new Thickness(0);
+                    addButtonBlock.VerticalAlignment = VerticalAlignment.Center;
+                    addButtonBlock.HorizontalAlignment = HorizontalAlignment.Center;
+                    addButton.Cursor = Cursors.Hand;
+                    addButtonBlock.Text = "+";
+                    addButtonBlock.FontSize = 17;
+                    addButton.Child = addButtonBlock;
+                    addButton.PreviewMouseDown += AddButtonMouseDown;
+                    addButtons.Add(addButton);
+                    elem.onMouseEnter(addButton, null);
+                    elem.onMouseLeave(addButton, null);
+                    Grid.SetColumn(addButton, 3);
+                    song.Children.Add(addButton);
+                    //ColumnDefinition blank = new ColumnDefinition();              
 
+                    //
+                    song.ColumnDefinitions.Add(toCheck);
+                    song.ColumnDefinitions.Add(name);
+                    song.ColumnDefinitions.Add(play);
+                    song.ColumnDefinitions.Add(add);
+                    //song.ColumnDefinitions.Add(blank);                
+                    Grid.SetRow(song, i);
+                    playList.Children.Add(song);
+                }
+            }
+            if(playListSwitch)
+            {
+                //songsInPlayListGrid.Children.Clear();                
+                for (int i = 0; i < listOfSongs.Count; i++)
+                {
+                    RowDefinition row = new RowDefinition();
+                    row.Height = new GridLength(50, GridUnitType.Pixel);
+                    songsInPlayListGrid.RowDefinitions.Add(row);
+                    Grid song = new Grid();
+                    //songGrid.Add(song);
+                    GridLength playWidth = new GridLength(0.2, GridUnitType.Star);
+                    ColumnDefinition toCheck = new ColumnDefinition();
+                    toCheck.Width = playWidth;
+                    //TextBlock selectSong = new TextBlock();
+                    //selectSong.FontSize = 17;
+                    ColumnDefinition name = new ColumnDefinition();
+                    GridLength nameWidth = new GridLength(2, GridUnitType.Star);
+                    name.Width = nameWidth;
+                    // Song Name
+                    TextBlock songName = new TextBlock();
+                    songsNames.Add(songName);
+                    songName.Text = elem.soundName(listOfSongs[i]);
+                    songName.FontSize = 17;
+                    songName.VerticalAlignment = VerticalAlignment.Center;
+                    Grid.SetColumn(songName, 1);
+                    song.Children.Add(songName);
+                    // Play Button
+                    ColumnDefinition play = new ColumnDefinition();
+                    play.Width = playWidth;
+                    Border playButton = new Border();
+                    playButton.BorderThickness = new Thickness(0);
+                    TextBlock playButtonBlock = new TextBlock();
+                    //playButton.Background = Brushes.Gray;
+                    playButton.MouseEnter += elem.onMouseEnter;
+                    playButton.MouseLeave += elem.onMouseLeave;
+                    playButton.Child = playButtonBlock;
+                    playButtonBlock.Text = "▶";
+                    playButtonBlock.FontSize = 17;
+                    playButtonBlock.VerticalAlignment = VerticalAlignment.Center;
+                    playButtonBlock.HorizontalAlignment = HorizontalAlignment.Center;
+                    playButton.PreviewMouseDown += playButton_click;
+                    playButton.Cursor = Cursors.Hand;
+                    elem.onMouseEnter(playButton, null);
+                    elem.onMouseLeave(playButton, null);
+                    playButtons.Add(playButton);
+                    Grid.SetColumn(playButton, 2);
+                    song.Children.Add(playButton);
+                    ColumnDefinition add = new ColumnDefinition();
+                    add.Width = playWidth;
+                    Border addButton = new Border();
+                    addButton.MouseEnter += elem.onMouseEnter;
+                    addButton.MouseLeave += elem.onMouseLeave;
+                    playButton.BorderThickness = new Thickness(0);
+                    TextBlock addButtonBlock = new TextBlock();
+                    addButton.BorderThickness = new Thickness(0);
+                    addButtonBlock.VerticalAlignment = VerticalAlignment.Center;
+                    addButtonBlock.HorizontalAlignment = HorizontalAlignment.Center;
+                    addButton.Cursor = Cursors.Hand;
+                    addButtonBlock.Text = "-";
+                    addButtonBlock.FontSize = 17;
+                    addButton.Child = addButtonBlock;
+                    addButton.PreviewMouseDown += AddButtonMouseDown;                    
+                    elem.onMouseEnter(addButton, null);
+                    elem.onMouseLeave(addButton, null);
+                    Grid.SetColumn(addButton, 3);
+                    song.Children.Add(addButton);
+                    //ColumnDefinition blank = new ColumnDefinition();              
+
+                    //
+                    song.ColumnDefinitions.Add(toCheck);
+                    song.ColumnDefinitions.Add(name);
+                    song.ColumnDefinitions.Add(play);
+                    song.ColumnDefinitions.Add(add);
+                    //song.ColumnDefinitions.Add(blank);                
+                    Grid.SetRow(song, i);
+                    songsInPlayListGrid.Children.Add(song);
+                }
+                playListSwitch = false;
             }
         }
-
-        public void playButton_click(object sender, RoutedEventArgs e)
-        {
-            if(((TextBlock)((Border)sender).Child).Text != "||" && count != playButtons.IndexOf((Border)sender))
-            {
-                switcher = false;
-                count = playButtons.IndexOf((Border)sender);
-                auSet.Open(new Uri(songs[count]));
-                progress.Width = 0;
-                ((TextBlock)FindName("SoundName")).Text = elem.soundName(auSet.Source.ToString());
-                time.timeToSlider(auSet, progressBar, progress, (TextBlock)FindName("currentTime"), (TextBlock)FindName("durationTime"));
+        
+        private void playButton_click(object sender, RoutedEventArgs e)
+        {            
+            if (((TextBlock)((Border)sender).Child).Text != "❚❚")
+            {                
+                if(playButtons.IndexOf((Border)sender) < songs.Count)
+                {
+                    playListSwitch = false;
+                } else
+                {
+                    playListSwitch = true;
+                }
+                if (!playListSwitch && count != playButtons.IndexOf((Border)sender))
+                {
+                    switcher = false;
+                    playListCount = -1;
+                    count = playButtons.IndexOf((Border)sender);
+                    settingsXML.Element("Settings").Element("LastSong").Attribute("playList").Value = "none";
+                    settingsXML.Save("settings.xml");
+                    auSet.Open(new Uri(songs[count]));
+                    progress.Width = 0;
+                    SoundName.Text = elem.soundName(auSet.Source.ToString());
+                    time.timeToSlider(auSet, progressBar, progress, currentTime, durationTime);
+                }
+                else if(playListSwitch && playListCount != playButtons.IndexOf((Border)sender) - songs.Count)
+                {                    
+                    switcher = false;
+                    playListCount = playButtons.IndexOf((Border)sender) - songs.Count;
+                    count = songs.IndexOf(listOfSongs[playButtons.IndexOf((Border)sender) - songs.Count]);                    
+                    settingsXML.Element("Settings").Element("LastSong").Attribute("playList").Value = nameOfPlayList;
+                    settingsXML.Save("settings.xml");
+                    auSet.Open(new Uri(songs[count]));
+                    progress.Width = 0;
+                    SoundName.Text = elem.soundName(auSet.Source.ToString());
+                    time.timeToSlider(auSet, progressBar, progress, currentTime, durationTime);
+                }                
             }
             for (int i = 0; i < playButtons.Count; i++)
             {
                 ((TextBlock)(playButtons[i]).Child).Text = "▶";
             }
-            ((TextBlock)((Border)sender).Child).Text = "||";            
-            
-            playPause((Border)FindName("play"), null);
-                        
-            /*if (switcher)
+            //((TextBlock)(playButtons[count].Child)).Text = "❚❚";
+            ((TextBlock)((Border)sender).Child).Text = "❚❚";
+
+            playPause(play, null);                                    
+        }
+        
+        private void checkBoxClick(object sender, RoutedEventArgs e)
+        {
+            if (!selectSongBlocks.Contains((CheckBox)sender))
             {
-                auSet.Play();
-            }*/
+                selectSongBlocks.Add((CheckBox)sender);
+            }
+            else
+            {
+                selectSongBlocks.Remove((CheckBox)sender);
+            }
+            //MessageBox.Show(songs[selectSongBlocks.IndexOf((CheckBox)sender)]);
         }
 
-        public void loopButton_click(object sender, RoutedEventArgs e)
+        private void loopButton_click(object sender, RoutedEventArgs e)
         {
             if (!looper)
             {
@@ -404,31 +776,69 @@ namespace Audioplayer
                 ((TextBlock)(((Border)sender).Child)).Foreground = Brushes.Black;
             }
         }
-
-        public void changeSounds(object sender, RoutedEventArgs e)
+        
+        private void changeSounds(object sender, RoutedEventArgs e)
         {
             if(((Border)sender).Name == "prevSound")
             {
-                if (count == 0)
+                if (playListSwitch)
                 {
-                    count = songs.Count - 1;
-                }
-                else
+                    if (playListCount == 0)
+                    {
+                        playListCount = listOfSongs.Count - 1;
+                        count = songs.IndexOf(listOfSongs[playListCount]);
+                    }
+                    else
+                    {
+                        playListCount--;
+                        count = songs.IndexOf(listOfSongs[playListCount]);
+                    }
+                } else
                 {
-                    count--;
+                    if (count == 0)
+                    {
+                        count = songs.Count - 1;
+                    }
+                    else
+                    {
+                        count--;
+                    }
                 }
             } 
             else
             {
-                if (count == (songs.Count - 1))
+                if (playListSwitch)
                 {
-                    count = 0;
-                }
-                else
+                    if(playListCount == listOfSongs.Count - 1) 
+                    {
+                        playListCount = 0;
+                        count = songs.IndexOf(listOfSongs[playListCount]);
+                    }
+                    else
+                    {
+                        playListCount++;
+                        count = songs.IndexOf(listOfSongs[playListCount]);
+                    }
+                } else
                 {
-                    count++;
+                    if (count == (songs.Count - 1))
+                    {
+                        count = 0;
+                    }
+                    else
+                    {
+                        count++;
+                    }
                 }
             }
+            for (int i = 0; i < playButtons.Count; i++)
+            {
+                ((TextBlock)(playButtons[i]).Child).Text = "▶";
+            }
+            if(switcher)
+            {
+                ((TextBlock)(playButtons[count]).Child).Text = "❚❚";
+            }            
             auSet.Open(new Uri(songs[count]));
             ((TextBlock)FindName("SoundName")).Text = elem.soundName(auSet.Source.ToString());
             progress.Width = 0;
@@ -437,27 +847,88 @@ namespace Audioplayer
             {
                 auSet.Play();
             }
+            settingsXML.Element("Settings").Element("LastSong").Value = count.ToString();
+            settingsXML.Save("settings.xml");
         }
-        public void changeWindow(object sender, RoutedEventArgs e)
+
+        private void changeWindow(object sender, RoutedEventArgs e)
         {            
-            switch (((Border)sender).Name)
+            if (sender != null)
+            {                
+                switch (((Border)sender).Name)
+                {
+                    case "allMusics":
+                        page = 0;
+                        break;
+                    case "settings":
+                        page = 1;
+                        break;
+                    case "playListsButton":
+                        page = 2;
+                        break;
+                    case "":
+                        page = 3;
+                        break;
+                }
+            }
+
+            switch(page)
             {
-                case "allMusics":
-                    ((ScrollViewer)FindName("toSounds")).Visibility = Visibility.Visible;
-                    ((ScrollViewer)FindName("toDirs")).Visibility = Visibility.Hidden;
-                    ((Border)FindName("addDirectory")).Visibility = Visibility.Hidden;
+                case 0:
+                    toSounds.Visibility = Visibility.Visible;
+                    toDirs.Visibility = Visibility.Hidden;
+                    toPlayLists.Visibility = Visibility.Hidden;
+                    playListInterface.Visibility = Visibility.Hidden;
+                    songsInPlayList.Visibility = Visibility.Hidden;
+                    addDirectory.Visibility = Visibility.Visible;
                     break;
-                case "settings":
-                    //Window1 wd = new Window1();
-                    //this.Close();                    
-                    //wd.ShowDialog();
-                    ((ScrollViewer)FindName("toSounds")).Visibility = Visibility.Hidden;
-                    ((ScrollViewer)FindName("toDirs")).Visibility = Visibility.Visible;
-                    ((Border)FindName("addDirectory")).Visibility = Visibility.Visible;
-                    //Panel.SetZIndex(((ScrollViewer)FindName("toDirs")), 5);
+                case 1:
+                    toSounds.Visibility = Visibility.Hidden;
+                    toDirs.Visibility = Visibility.Visible;
+                    toPlayLists.Visibility = Visibility.Hidden;
+                    playListInterface.Visibility = Visibility.Hidden;
+                    songsInPlayList.Visibility = Visibility.Hidden;
+                    addDirectory.Visibility = Visibility.Visible;
+                    break;
+                case 2:
+                    toSounds.Visibility = Visibility.Hidden;
+                    toDirs.Visibility = Visibility.Hidden;
+                    toPlayLists.Visibility = Visibility.Visible;
+                    playListInterface.Visibility = Visibility.Hidden;
+                    songsInPlayList.Visibility = Visibility.Hidden;
+                    addDirectory.Visibility = Visibility.Visible;
+                    break;
+                case 3:                    
+                    toSounds.Visibility = Visibility.Hidden;
+                    toDirs.Visibility = Visibility.Hidden;
+                    toPlayLists.Visibility = Visibility.Hidden;
+                    playListInterface.Visibility = Visibility.Visible;
+                    songsInPlayList.Visibility = Visibility.Visible;
+                    if (((TextBlock)((Border)sender).Child).Text != nameOfPlayList)
+                    {
+                        songsInPlayListGrid.Children.Clear();
+                        songsInPlayListGrid.RowDefinitions.Clear();
+                        playListSwitch = true;
+                        XDocument playListXML = XDocument.Load($"{((TextBlock)((Border)sender).Child).Text}");
+                        foreach (XElement song in playListXML.Element("Songs").Elements("song"))
+                        {
+                            listOfSongs.Add(song.Value);
+                        }
+                        nameOfPlayList = ((TextBlock)((Border)sender).Child).Text;
+                        createPlayListElement();
+                    }
+                    playListName.Text = nameOfPlayList;
+                    addDirectory.Visibility = Visibility.Hidden;
                     break;
             }
+            if(page == 3)
+            {
+                page = 2;
+            }
+            settingsXML.Element("Settings").Element("Page").Value = page.ToString();
+            settingsXML.Save("settings.xml");
         }
+        
     }
     
     class Elements
@@ -540,37 +1011,5 @@ namespace Audioplayer
             }
         }
     }
-
-    class findAudio
-    {
-        public void finder(List<string> path, List<string> songs)
-        {
-            Regex rg = new Regex("(.mp3)|(.wav)", RegexOptions.IgnoreCase);
-            string[] files = new string[4096];
-            string[] dirs = new string[4096];
-            List<string> dirList = new List<string>();
-            for (int i = 0; i < path.Count; i++)
-            {
-                if (Directory.Exists(path[i]))
-                {
-                    files = Directory.GetFiles(path[i]);
-                    dirs = Directory.GetDirectories(path[i]);
-                }
-
-                foreach (string file in files)
-                {
-                    if (rg.Match(file).Length > 0)
-                    {
-                        songs.Add(file);
-                    }
-                }
-
-                foreach (string dir in dirs)
-                {
-                    dirList.Add(dir);
-                    finder(dirList, songs);
-                }
-            }
-        }
-    }
+    
 }

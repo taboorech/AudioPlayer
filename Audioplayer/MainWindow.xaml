@@ -25,13 +25,16 @@
             <ColumnDefinition Width="0.7*"></ColumnDefinition>
             <ColumnDefinition Width="0.3*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
-        <Border Grid.Row="1" Grid.Column="5" PreviewMouseDown="AddButtonMouseDown" Background="Gray" x:Name="addDirectory" Cursor="Hand" Visibility="Hidden">
+        <Border Grid.Row="1" Grid.Column="5" PreviewMouseDown="AddButtonMouseDown" Background="Gray" x:Name="addDirectory" Cursor="Hand">
             <TextBlock Text="+" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="17"></TextBlock>
         </Border>
         <Border Grid.Row="0" Grid.Column="0" x:Name="allMusics" Background="Gray" PreviewMouseDown="changeWindow" BorderThickness="0" Cursor="Hand">
             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">All Musics</TextBlock>
         </Border>
-        <Border Grid.Row="1" Grid.Column="0" x:Name="settings" Background="Gray" PreviewMouseDown="changeWindow" BorderThickness="0" Cursor="Hand">
+        <Border Grid.Row="1" Grid.Column="0" x:Name="playListsButton" Background="Gray" PreviewMouseDown="changeWindow" BorderThickness="0" Cursor="Hand">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">Play Lists</TextBlock>
+        </Border>
+        <Border Grid.Row="2" Grid.Column="0" x:Name="settings" Background="Gray" PreviewMouseDown="changeWindow" BorderThickness="0" Cursor="Hand">
             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">Settings</TextBlock>
         </Border>
         <!--<Button Grid.Row="0" Grid.Column="0" Content="Select Dirs" x:Name="selectDirs" Click="changeWindow"></Button>-->
@@ -42,6 +45,11 @@
         </ScrollViewer>
         <ScrollViewer Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Grid.RowSpan="4" x:Name="toDirs" Visibility="Hidden">
             <Grid x:Name="Dirs">
+
+            </Grid>
+        </ScrollViewer>
+        <ScrollViewer Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Grid.RowSpan="4" x:Name="toPlayLists" Visibility="Hidden">
+            <Grid x:Name="pL">
 
             </Grid>
         </ScrollViewer>
@@ -92,8 +100,8 @@
                     <ColumnDefinition Width="3*"></ColumnDefinition>
                     <ColumnDefinition></ColumnDefinition>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Height="5" x:Name="volumeBar" VerticalAlignment="Center" PreviewMouseDown="volumeBar_click" Margin="15 0 15 0" Background="Gray" Cursor="Hand">
-                    <TextBlock Height="5" Width="120" x:Name="volume" Background="Black"></TextBlock>
+                <TextBlock Grid.Column="0" Height="5" x:Name="volumeBar" VerticalAlignment="Center" PreviewMouseDown="progressBar_click" Margin="15 0 15 0" Background="Gray" Cursor="Hand">
+                    <TextBlock Height="5" x:Name="volume" Background="Black"></TextBlock>
                 </TextBlock>
                 <Border Grid.Column="1" BorderThickness="0" PreviewMouseDown="loopButton_click" x:Name="loopButton" Cursor="Hand">
                     <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="16">Loop</TextBlock>
@@ -101,5 +109,29 @@
                 <!--<Button Grid.Column="1" Click="loopButton_click" BorderThickness="0">Looper</Button>-->
             </Grid>
         </Grid>
+        <Grid Grid.Column="1" Grid.ColumnSpan="4" Grid.RowSpan="2" Background="Gray" x:Name="playListInterface" Visibility="Hidden">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.7*"></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition Width="0.7*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Column="1" x:Name="playListName"></TextBlock>
+            <Border Grid.Column="2" Grid.Row="1">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White">▶</TextBlock>
+            </Border>
+            <Border Grid.Column="3" x:Name="deletePlayList">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White">×</TextBlock>
+            </Border>
+        </Grid>
+        <ScrollViewer Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4" Grid.RowSpan="4" Visibility="Hidden" x:Name="songsInPlayList">
+            <Grid x:Name="songsInPlayListGrid">
+                
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </Window>

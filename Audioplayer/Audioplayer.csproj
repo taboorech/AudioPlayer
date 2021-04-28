@@ -56,9 +56,26 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="addInPlayList.xaml.cs">
+      <DependentUpon>addInPlayList.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="createPlayList.xaml.cs">
+      <DependentUpon>createPlayList.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DragDrop.cs" />
+    <Compile Include="findAudio.cs" />
+    <Compile Include="Sounds.cs" />
     <Compile Include="Window1.xaml.cs">
       <DependentUpon>Window1.xaml</DependentUpon>
     </Compile>
+    <Page Include="addInPlayList.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="createPlayList.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
