@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Audioplayer"
         mc:Ignorable="d"
-        Title="addInPlayList" Height="157.664" Width="297.445">
+        Height="246.463" Width="297.445">
     <ScrollViewer>
         <Grid x:Name="pL">
 

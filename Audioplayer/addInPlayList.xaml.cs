@@ -38,42 +38,43 @@ namespace Audioplayer
             {
                 allCheckBoxes.Add(allCheckBoxesList[i]);
             }
-        }
-        /*protected List<CheckBox> selectSongBlocks;
-        protected List<string> songs;
-
-        public addInPlayList(List<CheckBox> blocks, List<string> song)
-        {
-            this.selectSongBlocks = blocks;
-            this.songs = song;
-        }*/
+        }        
         public addInPlayList()
         {
-            InitializeComponent();                        
-            string[] xmlPlayLists = new string[4096];
-            xmlPlayLists = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.xml");
-            for (int i = 0; i < xmlPlayLists.Length; i++)
+            InitializeComponent();
+            foreach (XElement playList in XDocument.Load("settings.xml").Element("Settings").Element("Playlists").Elements("playlist"))
             {
-                XDocument xpl = XDocument.Load(xmlPlayLists[i]);
-                string[] nameOfPlayList = xmlPlayLists[i].Split('\\', '/');
-                if (nameOfPlayList[nameOfPlayList.Length - 1] != "settings.xml")
-                {                    
-                    createElementInGrid(nameOfPlayList[nameOfPlayList.Length - 1], i);
+                createElementInGrid(playList.Value, pL.RowDefinitions.Count);
+            }
+            foreach (Window window in Application.Current.Windows)
+            {
+                if (window.GetType() == typeof(MainWindow))
+                {
+                    for (int i = 0; i < (window as MainWindow).selectSongBlocks.Count; i++)
+                    {                        
+                        (window as MainWindow).selectSongBlocks[i].IsChecked = false;
+                    }
+                    (window as MainWindow).selectSongBlocks.Clear();
+                    (window as MainWindow).addDirectory.Visibility = Visibility.Hidden;
                 }
             }
         }
 
         private void addInPlayListFunc(object sender, RoutedEventArgs e)
-        {            
+        {
             XDocument pL = XDocument.Load(((TextBlock)sender).Text);
             XElement songsInPL = pL.Element("Songs");
-            for (int i = 0; i < selectSongBlocks.Count; i++)
-            {                
-                songsInPL.Add(new XElement("song", songs[allCheckBoxes.IndexOf(selectSongBlocks[i])]));
-                pL.Save(((TextBlock)sender).Text);
-                selectSongBlocks[i].IsChecked = false;                
+            foreach (Window window in Application.Current.Windows)
+            {
+                if (window.GetType() == typeof(MainWindow))
+                {
+                    for (int i = 0; i < (window as MainWindow).selectSongBlocks.Count; i++)
+                    {
+                        songsInPL.Add(new XElement("song", songs[allCheckBoxes.IndexOf((window as MainWindow).selectSongBlocks[i])]));
+                        pL.Save(((TextBlock)sender).Text);                        
+                    }                    
+                }
             }
-            //selectSongBlocks.Clear();
             this.Close();
         }
         private void createElementInGrid(string nameOfPlayList, int i)

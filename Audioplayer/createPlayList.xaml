@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Audioplayer"
         mc:Ignorable="d"
-        Title="createPlayList" Height="118.315" Width="287.591">
+        Height="142.982" Width="287.591">
     <Grid>
         <StackPanel>
-            <TextBox Height="40" FontSize="16" x:Name="nameOfCreateList"></TextBox>
-            <Button Height="40" x:Name="createButton" Click="createButtonClick">Create</Button>
+            <TextBox Height="40" FontSize="16" x:Name="nameOfCreateList" Margin="15 15 15 0"></TextBox>
+            <Button Height="40" x:Name="createButton" Click="createButtonClick" Margin="15 0 15 15">Create</Button>
         </StackPanel>
     </Grid>
 </Window>

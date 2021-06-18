@@ -20,8 +20,7 @@ namespace Audioplayer
     /// </summary>
     public partial class createPlayList : Window
     {
-        int number = 0;
-        MainWindow mainWindow = new MainWindow();        
+        int number = 0;        
         public void writer(int numberOfGrid)
         {
             number = numberOfGrid;
@@ -34,7 +33,18 @@ namespace Audioplayer
         private void createButtonClick(object sender, RoutedEventArgs e)
         {
             XDocument xDoc = new XDocument(new XElement("Songs", ""));
-            xDoc.Save($"{((TextBox)FindName("nameOfCreateList")).Text}.xml");            
+            xDoc.Save($"{nameOfCreateList.Text}.xml");
+            foreach (Window window in Application.Current.Windows)
+            {
+                if (window.GetType() == typeof(MainWindow))
+                {
+                    (window as MainWindow).settingsXML.Element("Settings").Element("Playlists").Add(new XElement("playlist", $"{nameOfCreateList.Text}.xml"));
+                    (window as MainWindow).settingsXML.Save("settings.xml");
+                    (window as MainWindow).pL.Children.Clear();
+                    (window as MainWindow).pL.RowDefinitions.Clear();
+                    (window as MainWindow).getPlayListsNames();
+                }
+            }            
             this.Close();            
         }
     }
